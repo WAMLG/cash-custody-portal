@@ -115,12 +115,14 @@ The current phase is frontend foundation work after backend core APIs were prepa
 - Fixed audit logging so password hashes are not stored when a user password is updated.
 - Improved perceived speed by removing extra full-list refetches after finance note edits, admin handover actions, supplier actions, supplier payment actions, user actions, and receiver actions.
 - Updated local frontend state directly from API responses after create/edit/block/unblock/void actions where possible.
+- Added Render backend Docker deployment files.
+- Added docs/deployment.md with Render backend and Vercel frontend deployment steps.
 
 ## 3. Current step we are working on
 
-Step 12: Demo polish.
+Deployment preparation.
 
-Status: completed, with additional user-edit and responsiveness improvements completed afterward.
+Status: Render backend deployment files created locally and ready to commit/push.
 
 ## 4. Important files changed recently
 
@@ -227,6 +229,11 @@ Status: completed, with additional user-edit and responsiveness improvements com
 - frontend/src/app/login/DemoCredentials.tsx
 - frontend/src/app/admin/users/AdminUsersClient.tsx
 - frontend/src/app/finance/my-records/MyRecordsClient.tsx
+- backend/Dockerfile
+- backend/.dockerignore
+- backend/docker/apache.conf
+- backend/docker/render-start.sh
+- docs/deployment.md
 
 ## 5. Known bugs/issues still remaining
 
@@ -248,17 +255,18 @@ Status: completed, with additional user-edit and responsiveness improvements com
 
 ## 6. Next exact steps to continue
 
-Next step is optional hardening and refinement before deployment/demo handoff.
+Next step is commit and push the Render backend deployment files, then create/deploy the Render Web Service.
 
 Exact next actions:
 
-1. Add richer modal forms for remaining admin edits such as supplier full details and user profile edits.
-2. Add focused backend feature tests for auth, role guards, handover actions, supplier payments, and audit logs.
-3. Add frontend integration/e2e tests for login and critical finance/admin workflows.
-4. Review production auth storage strategy; sessionStorage is acceptable for this demo but httpOnly cookies or a BFF pattern should be considered for production.
-5. Remove nested .git directories inside backend/ and frontend/ if this root project will become one repository.
-6. Prepare deployment notes for Vercel frontend and Render/VPS backend.
-7. Re-run php artisan test, npm run lint, and npm run build before any demo.
+1. Commit and push backend/Dockerfile, backend/.dockerignore, backend/docker/, docs/deployment.md, and project_state.md.
+2. In Render, create a Web Service from WAMLG/cash-custody-portal.
+3. Use root directory backend and runtime Docker.
+4. Set Render environment variables, including the real APP_KEY and Supabase PostgreSQL credentials.
+5. Deploy the backend.
+6. After first successful deploy, run migrations only if needed. Avoid running db:seed again if the Supabase database already has demo records.
+7. Test https://YOUR_RENDER_SERVICE.onrender.com/api/login.
+8. After backend works, deploy frontend to Vercel with NEXT_PUBLIC_API_BASE_URL pointing to the Render API URL.
 
 ## 7. Any rules or decisions we must not forget
 
