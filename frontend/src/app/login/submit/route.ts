@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import { NextRequest, NextResponse } from "next/server";
 import type { LoginResponse, UserRole } from "@/types";
 
-const BACKEND_API_URL = "http://127.0.0.1:8000/api";
+const BACKEND_API_URL =
+  process.env.BACKEND_API_URL ??
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  "http://127.0.0.1:8000/api";
 const TOKEN_KEY = "cash_custody_token";
 const USER_KEY = "cash_custody_user";
 
