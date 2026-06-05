@@ -22,9 +22,11 @@ cash-custody-portal/
 
 ## Current Status
 
-Only documentation has been created.
+The backend and frontend demo applications have been created.
 
-Frontend and backend application code have not been generated yet.
+Backend core APIs are implemented for auth, finance handovers, admin management, supplier payments, dashboards, audit logs, and supplier portal access.
+
+Frontend pages are implemented for admin, finance, and supplier users.
 
 ## Local Development Requirements
 
@@ -79,6 +81,7 @@ Planned backend setup steps:
 7. Seed demo data:
    - one admin user
    - two finance users
+   - one supplier user
    - authorized receivers
    - suppliers
    - sample cash handovers
@@ -139,6 +142,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
 - Store passwords only with Laravel hashing.
 - Blocked users must not be allowed to login.
 - Backend must enforce admin and finance permissions.
+- Backend must enforce supplier permissions.
+- Supplier users can see only payments linked to their assigned supplier record.
+- Supplier users can accept their own payments and edit only their own supplier note.
 - Do not rely only on frontend route hiding for security.
 - Do not physically delete financial records.
 - Use soft deletes or void statuses.
@@ -176,3 +182,18 @@ To run frontend: Terminal 2
 
 Open in browser:
 http://127.0.0.1:3000/login
+
+## Demo Login Notes
+
+Default seeded users are intended for local/demo use only.
+
+If your database was already seeded before supplier login was added, run the latest migrations first, then create a supplier user from Admin > Users. Choosing the Supplier role creates both the supplier company record and the login user together.
+
+Do not run the full database seeder again on an existing Supabase database unless you intentionally want to reset or duplicate demo data.
+
+Supplier creation rule:
+
+- Use Admin > Users to create supplier login users.
+- When role is Supplier, fill the supplier/company fields in the same form.
+- The system creates one supplier record and one linked supplier user.
+- Use Admin > Suppliers only to manage existing supplier companies.

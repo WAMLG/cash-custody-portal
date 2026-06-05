@@ -14,7 +14,9 @@ import { apiRequest } from "@/lib/api";
 import {
   clearStoredToken,
   getStoredToken,
+  getStoredUser,
   storeToken,
+  storeUser,
 } from "@/lib/auth-storage";
 import type { LoginResponse, User, UserRole } from "@/types";
 
@@ -31,9 +33,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => getStoredUser());
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const [isLoading, setIsLoading] = useState(() => !getStoredUser());
 
   const refreshUser = useCallback(async (): Promise<User | null> => {
     const currentToken = getStoredToken();
@@ -45,17 +47,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
+    const storedUser = getStoredUser();
+
+    if (storedUser) {
+      setToken(currentToken);
+      setUser(storedUser);
+      setIsLoading(false);
+    }
+
     try {
       const response = await apiRequest<{ user: User }>("/me", {
         token: currentToken,
+        timeoutMs: 8000,
       });
       setToken(currentToken);
       setUser(response.user);
+      storeUser(response.user);
       return response.user;
     } catch {
-      clearStoredToken();
-      setToken(null);
-      setUser(null);
+      if (!storedUser && getStoredToken() === currentToken) {
+        clearStoredToken();
+        setToken(null);
+        setUser(null);
+      }
       return null;
     } finally {
       setIsLoading(false);
@@ -64,6 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    const loadingWatchdog = window.setTimeout(() => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }, 5000);
 
     async function loadSession(): Promise<void> {
       await Promise.resolve();
@@ -77,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
+      window.clearTimeout(loadingWatchdog);
     };
   }, [refreshUser]);
 
@@ -91,8 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       storeToken(response.token);
+      storeUser(response.user);
       setToken(response.token);
       setUser(response.user);
+      setIsLoading(false);
 
       return response.user;
     },
@@ -141,5 +163,13 @@ export function useAuth(): AuthContextValue {
 }
 
 export function dashboardPathForRole(role: UserRole): string {
-  return role === "admin" ? "/admin/dashboard" : "/finance/dashboard";
+  if (role === "admin") {
+    return "/admin/dashboard";
+  }
+
+  if (role === "supplier") {
+    return "/supplier/dashboard";
+  }
+
+  return "/finance/dashboard";
 }

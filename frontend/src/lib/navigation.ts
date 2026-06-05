@@ -12,3 +12,8 @@ export const financeNavItems = [
   { href: "/finance/new-handover", label: "New Handover" },
   { href: "/finance/my-records", label: "My Records" },
 ];
+
+export const supplierNavItems = [
+  { href: "/supplier/dashboard", label: "Dashboard" },
+  { href: "/supplier/payments", label: "Payments" },
+];

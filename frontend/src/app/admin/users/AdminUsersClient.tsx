@@ -1,21 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminActionButton, AdminTable } from "@/components/AdminTable";
 import { Modal } from "@/components/Modal";
 import { StateBlock } from "@/components/StateBlock";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { AuthorizedReceiver, CollectionResponse, User, UserRole } from "@/types";
 
+type UsersTab = "create" | "users" | "receivers";
+
+const emptyUserForm = {
+  name: "",
+  email: "",
+  username: "",
+  password: "",
+  role: "finance" as UserRole,
+  supplier_name: "",
+  supplier_contact_person: "",
+  supplier_phone: "",
+  supplier_email: "",
+  supplier_address: "",
+};
+
 export function AdminUsersClient() {
   const { token, user: currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<UsersTab>("create");
   const [users, setUsers] = useState<User[]>([]);
   const [receivers, setReceivers] = useState<AuthorizedReceiver[]>([]);
-  const [form, setForm] = useState({ name: "", email: "", username: "", password: "", role: "finance" as UserRole });
+  const [form, setForm] = useState(emptyUserForm);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", username: "", phone: "", role: "finance" as UserRole, password: "" });
+  const [editForm, setEditForm] = useState({ ...emptyUserForm, phone: "" });
   const [receiverForm, setReceiverForm] = useState({ name: "", relationship_or_role: "" });
+  const [editingReceiver, setEditingReceiver] = useState<AuthorizedReceiver | null>(null);
+  const [receiverEditForm, setReceiverEditForm] = useState({ name: "", relationship_or_role: "" });
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,13 +56,35 @@ export function AdminUsersClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  function clearMessages() {
+    setMessage(null);
+    setError(null);
+  }
+
   async function createUser() {
     if (!token) return;
+    clearMessages();
+
     try {
-      const response = await apiRequest<{ data: User }>("/admin/users", { method: "POST", token, body: JSON.stringify(form) });
-      setForm({ name: "", email: "", username: "", password: "", role: "finance" });
+      const payload = {
+        name: form.name,
+        email: form.email,
+        username: form.username,
+        password: form.password,
+        role: form.role,
+        supplier: form.role === "supplier" ? {
+          name: form.supplier_name,
+          contact_person: form.supplier_contact_person || null,
+          phone: form.supplier_phone || null,
+          email: form.supplier_email || null,
+          address: form.supplier_address || null,
+        } : undefined,
+      };
+      const response = await apiRequest<{ data: User }>("/admin/users", { method: "POST", token, body: JSON.stringify(payload) });
+      setForm(emptyUserForm);
       setUsers((current) => [...current, response.data].sort((a, b) => a.name.localeCompare(b.name)));
-      setMessage("User created.");
+      setMessage(form.role === "supplier" ? "Supplier and login user created." : "User created.");
+      setActiveTab("users");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "User action failed.");
     }
@@ -53,40 +92,39 @@ export function AdminUsersClient() {
 
   async function userAction(path: string, success: string) {
     if (!token) return;
+    clearMessages();
+
     try {
       const response = await apiRequest<{ data: User }>(path, { method: "POST", token });
       setMessage(success);
       setUsers((current) => current.map((user) => user.id === response.data.id ? response.data : user));
+      setEditingUser(response.data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "User action failed.");
     }
   }
 
-  async function receiverAction(path: string, success: string) {
-    if (!token) return;
-    try {
-      const response = await apiRequest<{ data: AuthorizedReceiver }>(path, { method: "POST", token });
-      setMessage(success);
-      setReceivers((current) => current.map((receiver) => receiver.id === response.data.id ? response.data : receiver));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Receiver action failed.");
-    }
-  }
-
   function openEdit(user: User) {
+    clearMessages();
     setEditingUser(user);
     setEditForm({
       name: user.name,
       email: user.email,
       username: user.username,
+      password: "",
       phone: user.phone ?? "",
       role: user.role,
-      password: "",
+      supplier_name: user.supplier?.name ?? "",
+      supplier_contact_person: user.supplier?.contact_person ?? "",
+      supplier_phone: user.supplier?.phone ?? "",
+      supplier_email: user.supplier?.email ?? "",
+      supplier_address: user.supplier?.address ?? "",
     });
   }
 
   async function saveUserEdit() {
     if (!token || !editingUser) return;
+    clearMessages();
 
     try {
       const payload = {
@@ -95,6 +133,13 @@ export function AdminUsersClient() {
         username: editForm.username,
         phone: editForm.phone || null,
         role: editForm.role,
+        supplier: editForm.role === "supplier" ? {
+          name: editForm.supplier_name,
+          contact_person: editForm.supplier_contact_person || null,
+          phone: editForm.supplier_phone || null,
+          email: editForm.supplier_email || null,
+          address: editForm.supplier_address || null,
+        } : undefined,
         ...(editForm.password ? { password: editForm.password } : {}),
       };
       const response = await apiRequest<{ data: User }>(`/admin/users/${editingUser.id}`, {
@@ -112,6 +157,8 @@ export function AdminUsersClient() {
 
   async function createReceiver() {
     if (!token) return;
+    clearMessages();
+
     try {
       const response = await apiRequest<{ data: AuthorizedReceiver }>("/admin/authorized-receivers", { method: "POST", token, body: JSON.stringify(receiverForm) });
       setReceiverForm({ name: "", relationship_or_role: "" });
@@ -122,85 +169,232 @@ export function AdminUsersClient() {
     }
   }
 
+  function openReceiver(receiver: AuthorizedReceiver) {
+    clearMessages();
+    setEditingReceiver(receiver);
+    setReceiverEditForm({
+      name: receiver.name,
+      relationship_or_role: receiver.relationship_or_role,
+    });
+  }
+
+  async function saveReceiverEdit() {
+    if (!token || !editingReceiver) return;
+    clearMessages();
+
+    try {
+      const response = await apiRequest<{ data: AuthorizedReceiver }>(`/admin/authorized-receivers/${editingReceiver.id}`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify(receiverEditForm),
+      });
+      setReceivers((current) => current.map((receiver) => receiver.id === response.data.id ? response.data : receiver));
+      setEditingReceiver(null);
+      setMessage("Authorized receiver updated.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Receiver update failed.");
+    }
+  }
+
+  async function receiverStatusAction(path: string, success: string) {
+    if (!token) return;
+    clearMessages();
+
+    try {
+      const response = await apiRequest<{ data: AuthorizedReceiver }>(path, { method: "POST", token });
+      setReceivers((current) => current.map((receiver) => receiver.id === response.data.id ? response.data : receiver));
+      setEditingReceiver(response.data);
+      setMessage(success);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Receiver action failed.");
+    }
+  }
+
   if (isLoading) return <StateBlock title="Loading" message="Fetching users." />;
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="grid gap-3 rounded-md border border-[#d8dde5] bg-white p-4 shadow-sm md:grid-cols-6">
-        <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-        <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-        <select className="h-11 rounded-md border border-[#cfd6df] px-3" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}><option value="finance">Finance</option><option value="admin">Admin</option></select>
-        <button className="h-11 rounded-md bg-[#1f7a5c] px-5 text-sm font-semibold text-white" type="button" onClick={() => void createUser()}>Create</button>
+      <section className="grid grid-cols-3 gap-2 rounded-md border border-[#d8dde5] bg-white p-2 shadow-sm">
+        <TabButton active={activeTab === "create"} onClick={() => setActiveTab("create")}>Create</TabButton>
+        <TabButton active={activeTab === "users"} onClick={() => setActiveTab("users")}>Users</TabButton>
+        <TabButton active={activeTab === "receivers"} onClick={() => setActiveTab("receivers")}>Receivers</TabButton>
       </section>
-      {message ? <p className="text-sm text-[#146245]">{message}</p> : null}
-      {error ? <p className="text-sm text-[#9d2f1f]">{error}</p> : null}
-      <AdminTable headers={["Name", "Email", "Username", "Role", "Status", "Last Login", "Actions"]} empty={users.length === 0}>
-        {users.map((user) => (
-          <tr key={user.id}>
-            <td className="px-5 py-3 font-medium">{user.name}</td>
-            <td className="px-5 py-3">{user.email}</td>
-            <td className="px-5 py-3">{user.username}</td>
-            <td className="px-5 py-3 capitalize">{user.role}</td>
-            <td className="px-5 py-3 capitalize">{user.status}</td>
-            <td className="px-5 py-3">{user.last_login_at ?? "-"}</td>
-            <td className="px-5 py-3">
-              <div className="flex flex-wrap gap-2">
-                <AdminActionButton onClick={() => openEdit(user)}>Edit</AdminActionButton>
-                {user.id === currentUser?.id ? "Current user" : user.status === "active" ? (
-                  <AdminActionButton onClick={() => window.confirm(`Block user ${user.name}? They will be logged out and cannot sign in until unblocked.`) && void userAction(`/admin/users/${user.id}/block`, "User blocked.")}>Block</AdminActionButton>
-                ) : (
-                  <AdminActionButton onClick={() => void userAction(`/admin/users/${user.id}/unblock`, "User unblocked.")}>Unblock</AdminActionButton>
-                )}
-              </div>
-            </td>
-          </tr>
-        ))}
-      </AdminTable>
-      {editingUser ? (
-        <Modal title={`Edit ${editingUser.name}`} onClose={() => setEditingUser(null)}>
-          <div className="grid gap-3">
-            <input className="h-11 rounded-md border border-[#cfd6df] px-3" value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
-            <input className="h-11 rounded-md border border-[#cfd6df] px-3" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} />
-            <input className="h-11 rounded-md border border-[#cfd6df] px-3" value={editForm.username} onChange={(event) => setEditForm({ ...editForm, username: event.target.value })} />
-            <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="Phone" value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: event.target.value })} />
-            <select className="h-11 rounded-md border border-[#cfd6df] px-3" value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserRole })}>
-              <option value="finance">Finance</option>
-              <option value="admin">Admin</option>
-            </select>
-            <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="New password optional" type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} />
+
+      {message ? <p className="rounded-md border border-[#a8d5c0] bg-[#edf8f3] px-3 py-2 text-sm text-[#146245]">{message}</p> : null}
+      {error ? <p className="rounded-md border border-[#f0c4bd] bg-[#fff5f3] px-3 py-2 text-sm text-[#9d2f1f]">{error}</p> : null}
+
+      {activeTab === "create" ? (
+        <section className="rounded-md border border-[#d8dde5] bg-white p-4 shadow-sm">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <Input label="Name" value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
+            <Input label="Email" type="email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} />
+            <Input label="Username" value={form.username} onChange={(value) => setForm({ ...form, username: value })} />
+            <Input label="Password" type="password" value={form.password} onChange={(value) => setForm({ ...form, password: value })} />
+            <label className="block">
+              <span className="text-sm font-medium text-[#384150]">Role</span>
+              <select className="mt-2 h-12 w-full rounded-md border border-[#cfd6df] px-3 sm:h-11" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })}>
+                <option value="finance">Finance</option>
+                <option value="admin">Admin</option>
+                <option value="supplier">Supplier</option>
+              </select>
+            </label>
+            {form.role === "supplier" ? (
+              <>
+                <Input label="Supplier company" value={form.supplier_name} onChange={(value) => setForm({ ...form, supplier_name: value })} />
+                <Input label="Contact person" value={form.supplier_contact_person} onChange={(value) => setForm({ ...form, supplier_contact_person: value })} />
+                <Input label="Supplier phone" value={form.supplier_phone} onChange={(value) => setForm({ ...form, supplier_phone: value })} />
+                <Input label="Supplier email" type="email" value={form.supplier_email} onChange={(value) => setForm({ ...form, supplier_email: value })} />
+                <Input label="Supplier address" value={form.supplier_address} onChange={(value) => setForm({ ...form, supplier_address: value })} className="xl:col-span-2" />
+              </>
+            ) : null}
           </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <button className="rounded-md border border-[#cfd6df] px-4 py-2 text-sm font-semibold text-[#384150]" type="button" onClick={() => setEditingUser(null)}>Cancel</button>
-            <button className="rounded-md bg-[#1f7a5c] px-4 py-2 text-sm font-semibold text-white" type="button" onClick={() => void saveUserEdit()}>Save User</button>
+          <div className="mt-4 flex justify-end">
+            <button className="h-12 w-full rounded-md bg-[#1f7a5c] px-5 text-sm font-semibold text-white sm:h-11 sm:w-auto" type="button" onClick={() => void createUser()}>Create User</button>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "users" ? (
+        <section className="grid gap-3">
+          {users.length === 0 ? <StateBlock title="No Users" message="No login users were found." /> : null}
+          {users.map((user) => (
+            <button key={user.id} className="rounded-md border border-[#d8dde5] bg-white p-4 text-left shadow-sm transition hover:border-[#b8c4d2] hover:bg-[#fafbfc]" type="button" onClick={() => openEdit(user)}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-[#15181d]">{user.name}</p>
+                  <p className="mt-1 text-sm text-[#687080]">{user.email}</p>
+                  <p className="mt-1 text-sm text-[#687080]">{user.username}</p>
+                </div>
+                <span className={`rounded-md border px-2 py-1 text-xs font-semibold capitalize ${user.status === "active" ? "border-[#a8d5c0] bg-[#edf8f3] text-[#146245]" : "border-[#efb4ad] bg-[#fff1ef] text-[#9d2f1f]"}`}>{user.status}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-[#384150]">
+                <span className="rounded-md bg-[#eef2f6] px-2 py-1 capitalize">{user.role}</span>
+                {user.supplier ? <span className="rounded-md bg-[#eef2f6] px-2 py-1">{user.supplier.name}</span> : null}
+                {user.id === currentUser?.id ? <span className="rounded-md bg-[#fff8df] px-2 py-1 text-[#735c05]">Current user</span> : null}
+              </div>
+            </button>
+          ))}
+        </section>
+      ) : null}
+
+      {activeTab === "receivers" ? (
+        <section className="flex flex-col gap-4">
+          <section className="rounded-md border border-[#d8dde5] bg-white p-4 shadow-sm">
+            <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+              <Input label="Receiver name" value={receiverForm.name} onChange={(value) => setReceiverForm({ ...receiverForm, name: value })} />
+              <Input label="Relationship or role" value={receiverForm.relationship_or_role} onChange={(value) => setReceiverForm({ ...receiverForm, relationship_or_role: value })} />
+              <button className="h-12 rounded-md bg-[#1f7a5c] px-5 text-sm font-semibold text-white md:mt-7 md:h-11" type="button" onClick={() => void createReceiver()}>Create Receiver</button>
+            </div>
+          </section>
+          <section className="grid gap-3">
+            {receivers.map((receiver) => (
+              <button key={receiver.id} className="rounded-md border border-[#d8dde5] bg-white p-4 text-left shadow-sm transition hover:border-[#b8c4d2] hover:bg-[#fafbfc]" type="button" onClick={() => openReceiver(receiver)}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-[#15181d]">{receiver.name}</p>
+                    <p className="mt-1 text-sm text-[#687080]">{receiver.relationship_or_role}</p>
+                  </div>
+                  <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${receiver.is_active ? "border-[#a8d5c0] bg-[#edf8f3] text-[#146245]" : "border-[#efb4ad] bg-[#fff1ef] text-[#9d2f1f]"}`}>{receiver.is_active ? "active" : "blocked"}</span>
+                </div>
+              </button>
+            ))}
+          </section>
+        </section>
+      ) : null}
+
+      {editingUser ? (
+        <Modal title={`User: ${editingUser.name}`} onClose={() => setEditingUser(null)}>
+          <div className="grid gap-3">
+            <Input label="Name" value={editForm.name} onChange={(value) => setEditForm({ ...editForm, name: value })} />
+            <Input label="Email" type="email" value={editForm.email} onChange={(value) => setEditForm({ ...editForm, email: value })} />
+            <Input label="Username" value={editForm.username} onChange={(value) => setEditForm({ ...editForm, username: value })} />
+            <Input label="Phone" value={editForm.phone} onChange={(value) => setEditForm({ ...editForm, phone: value })} />
+            <label className="block">
+              <span className="text-sm font-medium text-[#384150]">Role</span>
+              <select className="mt-2 h-12 w-full rounded-md border border-[#cfd6df] px-3 sm:h-11" value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserRole })}>
+                <option value="finance">Finance</option>
+                <option value="admin">Admin</option>
+                <option value="supplier">Supplier</option>
+              </select>
+            </label>
+            {editForm.role === "supplier" ? (
+              <div className="grid gap-3 rounded-md border border-[#d8dde5] p-3">
+                <Input label="Supplier company" value={editForm.supplier_name} onChange={(value) => setEditForm({ ...editForm, supplier_name: value })} />
+                <Input label="Contact person" value={editForm.supplier_contact_person} onChange={(value) => setEditForm({ ...editForm, supplier_contact_person: value })} />
+                <Input label="Supplier phone" value={editForm.supplier_phone} onChange={(value) => setEditForm({ ...editForm, supplier_phone: value })} />
+                <Input label="Supplier email" type="email" value={editForm.supplier_email} onChange={(value) => setEditForm({ ...editForm, supplier_email: value })} />
+                <Input label="Supplier address" value={editForm.supplier_address} onChange={(value) => setEditForm({ ...editForm, supplier_address: value })} />
+              </div>
+            ) : null}
+            <Input label="New password optional" type="password" value={editForm.password} onChange={(value) => setEditForm({ ...editForm, password: value })} />
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button className="min-h-11 rounded-md bg-[#1f7a5c] px-4 py-2 text-sm font-semibold text-white" type="button" onClick={() => void saveUserEdit()}>Save Changes</button>
+            {editingUser.id === currentUser?.id ? (
+              <button className="min-h-11 rounded-md border border-[#cfd6df] px-4 py-2 text-sm font-semibold text-[#384150]" type="button" onClick={() => setEditingUser(null)}>Close</button>
+            ) : editingUser.status === "active" ? (
+              <button className="min-h-11 rounded-md border border-[#efb4ad] px-4 py-2 text-sm font-semibold text-[#9d2f1f]" type="button" onClick={() => window.confirm(`Block user ${editingUser.name}?`) && void userAction(`/admin/users/${editingUser.id}/block`, "User blocked.")}>Block User</button>
+            ) : (
+              <button className="min-h-11 rounded-md border border-[#a8d5c0] px-4 py-2 text-sm font-semibold text-[#146245]" type="button" onClick={() => void userAction(`/admin/users/${editingUser.id}/unblock`, "User unblocked.")}>Unblock User</button>
+            )}
           </div>
         </Modal>
       ) : null}
-      <section className="mt-4 rounded-md border border-[#d8dde5] bg-white p-4 shadow-sm">
-        <h3 className="text-base font-semibold text-[#15181d]">Authorized Receivers</h3>
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="Receiver name" value={receiverForm.name} onChange={(event) => setReceiverForm({ ...receiverForm, name: event.target.value })} />
-          <input className="h-11 rounded-md border border-[#cfd6df] px-3" placeholder="Relationship or role" value={receiverForm.relationship_or_role} onChange={(event) => setReceiverForm({ ...receiverForm, relationship_or_role: event.target.value })} />
-          <button className="h-11 rounded-md bg-[#1f7a5c] px-5 text-sm font-semibold text-white" type="button" onClick={() => void createReceiver()}>Create Receiver</button>
-        </div>
-      </section>
-      <AdminTable headers={["Name", "Role", "Status", "Actions"]} empty={receivers.length === 0}>
-        {receivers.map((receiver) => (
-          <tr key={receiver.id}>
-            <td className="px-5 py-3 font-medium">{receiver.name}</td>
-            <td className="px-5 py-3">{receiver.relationship_or_role}</td>
-            <td className="px-5 py-3">{receiver.is_active ? "active" : "blocked"}</td>
-            <td className="px-5 py-3">
-              {receiver.is_active ? (
-                <AdminActionButton onClick={() => window.confirm(`Block receiver ${receiver.name}? Finance users will not be able to select them for new handovers.`) && void receiverAction(`/admin/authorized-receivers/${receiver.id}/block`, "Receiver blocked.")}>Block</AdminActionButton>
-              ) : (
-                <AdminActionButton onClick={() => void receiverAction(`/admin/authorized-receivers/${receiver.id}/unblock`, "Receiver unblocked.")}>Unblock</AdminActionButton>
-              )}
-            </td>
-          </tr>
-        ))}
-      </AdminTable>
+
+      {editingReceiver ? (
+        <Modal title={`Receiver: ${editingReceiver.name}`} onClose={() => setEditingReceiver(null)}>
+          <div className="grid gap-3">
+            <Input label="Receiver name" value={receiverEditForm.name} onChange={(value) => setReceiverEditForm({ ...receiverEditForm, name: value })} />
+            <Input label="Relationship or role" value={receiverEditForm.relationship_or_role} onChange={(value) => setReceiverEditForm({ ...receiverEditForm, relationship_or_role: value })} />
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button className="min-h-11 rounded-md bg-[#1f7a5c] px-4 py-2 text-sm font-semibold text-white" type="button" onClick={() => void saveReceiverEdit()}>Save Receiver</button>
+            {editingReceiver.is_active ? (
+              <button className="min-h-11 rounded-md border border-[#efb4ad] px-4 py-2 text-sm font-semibold text-[#9d2f1f]" type="button" onClick={() => window.confirm(`Block receiver ${editingReceiver.name}?`) && void receiverStatusAction(`/admin/authorized-receivers/${editingReceiver.id}/block`, "Receiver blocked.")}>Block Receiver</button>
+            ) : (
+              <button className="min-h-11 rounded-md border border-[#a8d5c0] px-4 py-2 text-sm font-semibold text-[#146245]" type="button" onClick={() => void receiverStatusAction(`/admin/authorized-receivers/${editingReceiver.id}/unblock`, "Receiver unblocked.")}>Unblock Receiver</button>
+            )}
+          </div>
+        </Modal>
+      ) : null}
     </div>
+  );
+}
+
+function TabButton({ active, children, onClick }: { active: boolean; children: string; onClick: () => void }) {
+  return (
+    <button
+      className={`min-h-11 rounded-md px-3 py-2 text-sm font-semibold ${active ? "bg-[#1f7a5c] text-white" : "bg-[#eef2f6] text-[#384150]"}`}
+      type="button"
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Input({
+  label,
+  value,
+  onChange,
+  type = "text",
+  className = "",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  className?: string;
+}) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="text-sm font-medium text-[#384150]">{label}</span>
+      <input
+        className="mt-2 h-12 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c] sm:h-11"
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
   );
 }

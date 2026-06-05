@@ -121,7 +121,7 @@ export function MyRecordsClient() {
   }
 
   return (
-    <section className="rounded-md border border-[#d8dde5] bg-white shadow-sm">
+    <section className="mobile-table rounded-md border border-[#d8dde5] bg-white shadow-sm">
       <div className="flex flex-col gap-2 border-b border-[#e3e7ee] px-5 py-4">
         <h3 className="text-base font-semibold text-[#15181d]">
           Submitted Handovers
@@ -135,8 +135,8 @@ export function MyRecordsClient() {
           You have not submitted any handovers yet.
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1060px] text-left text-sm">
+        <div className="overflow-x-auto md:overflow-visible">
+          <table className="w-full min-w-[1060px] text-left text-sm md:min-w-0">
             <thead className="bg-[#fafbfc] text-[#687080]">
               <tr>
                 <th className="px-5 py-3 font-semibold">Code</th>
@@ -153,22 +153,22 @@ export function MyRecordsClient() {
             <tbody className="divide-y divide-[#e3e7ee]">
               {records.map((record) => (
                 <tr key={record.id} className="align-top">
-                  <td className="px-5 py-3 font-medium text-[#15181d]">
+                  <td data-label="Code" className="px-5 py-3 font-medium text-[#15181d]">
                     {record.handover_code}
                   </td>
-                  <td className="px-5 py-3 text-[#384150]">
+                  <td data-label="Date" className="px-5 py-3 text-[#384150]">
                     {formatDate(record.handover_date)}
                   </td>
-                  <td className="px-5 py-3 text-[#384150]">
+                  <td data-label="Time" className="px-5 py-3 text-[#384150]">
                     {formatTime(record.handover_time)}
                   </td>
-                  <td className="px-5 py-3 text-[#384150]">
+                  <td data-label="Amount" className="px-5 py-3 text-[#384150]">
                     {formatMoney(record.amount)}
                   </td>
-                  <td className="px-5 py-3 text-[#384150]">
+                  <td data-label="Handed To" className="px-5 py-3 text-[#384150]">
                     {record.handed_to?.name ?? "-"}
                   </td>
-                  <td className="max-w-[260px] px-5 py-3 text-[#384150]">
+                  <td data-label="Finance Note" className="max-w-[260px] px-5 py-3 text-[#384150]">
                     {editingId === record.id ? (
                       <form className="space-y-2" onSubmit={saveNote}>
                         <textarea
@@ -176,16 +176,16 @@ export function MyRecordsClient() {
                           value={noteDraft}
                           onChange={(event) => setNoteDraft(event.target.value)}
                         />
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <button
-                            className="rounded-md bg-[#1f7a5c] px-3 py-2 text-xs font-semibold text-white disabled:bg-[#8bb7a7]"
+                            className="min-h-10 rounded-md bg-[#1f7a5c] px-3 py-2 text-xs font-semibold text-white disabled:bg-[#8bb7a7] sm:min-h-0"
                             type="submit"
                             disabled={isSaving}
                           >
                             Save
                           </button>
                           <button
-                            className="rounded-md border border-[#cfd6df] px-3 py-2 text-xs font-semibold text-[#384150]"
+                            className="min-h-10 rounded-md border border-[#cfd6df] px-3 py-2 text-xs font-semibold text-[#384150] sm:min-h-0"
                             type="button"
                             onClick={() => setEditingId(null)}
                           >
@@ -197,16 +197,16 @@ export function MyRecordsClient() {
                       record.finance_note ?? "-"
                     )}
                   </td>
-                  <td className="max-w-[220px] px-5 py-3 text-[#384150]">
+                  <td data-label="Admin Note" className="max-w-[220px] px-5 py-3 text-[#384150]">
                     {record.admin_note ?? "-"}
                   </td>
-                  <td className="px-5 py-3">
+                  <td data-label="Status" className="px-5 py-3">
                     <StatusBadge status={record.status} />
                   </td>
-                  <td className="px-5 py-3">
+                  <td data-label="Actions" className="px-5 py-3">
                     {editingId === record.id ? null : (
                       <button
-                        className="rounded-md border border-[#cfd6df] px-3 py-2 text-xs font-semibold text-[#384150] hover:bg-[#eef2f6]"
+                        className="min-h-10 rounded-md border border-[#cfd6df] px-3 py-2 text-xs font-semibold text-[#384150] hover:bg-[#eef2f6] sm:min-h-0"
                         type="button"
                         onClick={() => startEditing(record)}
                       >

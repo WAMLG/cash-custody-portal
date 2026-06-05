@@ -18,6 +18,8 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'username' => $this->username,
             'role' => $this->role,
+            'supplier_id' => $this->supplier_id,
+            'supplier' => new SupplierResource($this->whenLoaded('supplier')),
             'status' => $this->status,
             'phone' => $this->phone,
             'last_login_at' => $this->last_login_at,

@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { Children, cloneElement, isValidElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 export function AdminTable({
   headers,
@@ -9,10 +10,31 @@ export function AdminTable({
   children: ReactNode;
   empty?: boolean;
 }) {
+  const mobileRows = Children.map(children, (row) => {
+    if (!isValidElement(row)) return row;
+
+    const rowElement = row as ReactElement<{ children?: ReactNode; className?: string }>;
+    const cells = Children.map(rowElement.props.children, (cell, index) => {
+      if (!isValidElement(cell)) return cell;
+
+      const cellElement = cell as ReactElement<{ className?: string; "data-label"?: string }>;
+
+      return cloneElement(cellElement, {
+        "data-label": headers[index] ?? "",
+        className: cellElement.props.className,
+      });
+    });
+
+    return cloneElement(rowElement, {
+      className: rowElement.props.className,
+      children: cells,
+    });
+  });
+
   return (
-    <section className="rounded-md border border-[#d8dde5] bg-white shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left text-sm">
+    <section className="mobile-table rounded-md border border-[#d8dde5] bg-white shadow-sm">
+      <div className="overflow-x-auto md:overflow-visible">
+        <table className="w-full min-w-[920px] text-left text-sm md:min-w-0">
           <thead className="bg-[#fafbfc] text-[#687080]">
             <tr>
               {headers.map((header) => (
@@ -30,7 +52,7 @@ export function AdminTable({
                 </td>
               </tr>
             ) : (
-              children
+              mobileRows
             )}
           </tbody>
         </table>
@@ -48,7 +70,7 @@ export function AdminActionButton({
 }) {
   return (
     <button
-      className="rounded-md border border-[#cfd6df] px-3 py-2 text-xs font-semibold text-[#384150] hover:bg-[#eef2f6]"
+      className="min-h-10 rounded-md border border-[#cfd6df] px-3 py-2 text-xs font-semibold text-[#384150] hover:bg-[#eef2f6] sm:min-h-0"
       type="button"
       onClick={onClick}
     >

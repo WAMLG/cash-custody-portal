@@ -25,7 +25,7 @@ class DashboardController extends Controller
             amountColumn: 'amount',
             startDate: $startDate,
             endDate: $endDate,
-            status: 'confirmed',
+            statuses: ['confirmed'],
         );
 
         $cashOutByDay = $this->dailyTotals(
@@ -34,7 +34,7 @@ class DashboardController extends Controller
             amountColumn: 'amount',
             startDate: $startDate,
             endDate: $endDate,
-            status: 'paid',
+            statuses: ['paid', 'accepted'],
         );
 
         $dateLabels = $this->dateLabels($startDate, $endDate);
@@ -55,7 +55,7 @@ class DashboardController extends Controller
         $periodCashIn = array_sum($cashInByDay);
         $periodCashOut = array_sum($cashOutByDay);
         $allTimeCashIn = $this->sumMoney(CashHandover::query()->where('status', 'confirmed'), 'amount');
-        $allTimeCashOut = $this->sumMoney(SupplierPayment::query()->where('status', 'paid'), 'amount');
+        $allTimeCashOut = $this->sumMoney(SupplierPayment::query()->whereIn('status', ['paid', 'accepted']), 'amount');
 
         return response()->json([
             'period' => [
@@ -152,14 +152,14 @@ class DashboardController extends Controller
         string $amountColumn,
         CarbonImmutable $startDate,
         CarbonImmutable $endDate,
-        string $status,
+        array $statuses,
     ): array {
         /** @var Builder $query */
         $query = $modelClass::query();
 
         $totals = $query
             ->selectRaw("{$dateColumn} as total_date, COALESCE(SUM({$amountColumn}), 0) as total_amount")
-            ->where('status', $status)
+            ->whereIn('status', $statuses)
             ->whereBetween($dateColumn, [$startDate->toDateString(), $endDate->toDateString()])
             ->groupBy($dateColumn)
             ->pluck('total_amount', 'total_date')
@@ -230,7 +230,7 @@ class DashboardController extends Controller
                 DB::raw('COUNT(supplier_payments.id) as payments_count'),
                 DB::raw('COALESCE(SUM(supplier_payments.amount), 0) as total_amount'),
             ])
-            ->where('supplier_payments.status', 'paid')
+            ->whereIn('supplier_payments.status', ['paid', 'accepted'])
             ->whereBetween('supplier_payments.payment_date', [$startDate->toDateString(), $endDate->toDateString()])
             ->groupBy('suppliers.id', 'suppliers.name')
             ->orderByDesc('total_amount')
@@ -255,7 +255,7 @@ class DashboardController extends Controller
     private function paidSupplierPaymentsForDate(string $date): Builder
     {
         return SupplierPayment::query()
-            ->where('status', 'paid')
+            ->whereIn('status', ['paid', 'accepted'])
             ->whereDate('payment_date', $date);
     }
 

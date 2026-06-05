@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "finance";
+export type UserRole = "admin" | "finance" | "supplier";
 
 export type RecordStatus =
   | "active"
@@ -6,6 +6,7 @@ export type RecordStatus =
   | "pending"
   | "confirmed"
   | "paid"
+  | "accepted"
   | "voided";
 
 export type User = {
@@ -14,6 +15,8 @@ export type User = {
   email: string;
   username: string;
   role: UserRole;
+  supplier_id: number | null;
+  supplier?: Supplier | null;
   status: "active" | "blocked";
   phone: string | null;
   last_login_at: string | null;
@@ -94,10 +97,23 @@ export type SupplierPayment = {
   invoice_number: string | null;
   received_by: string | null;
   admin_note: string | null;
-  status: "paid" | "voided";
+  supplier_note: string | null;
+  status: "paid" | "accepted" | "voided";
+  accepted_at: string | null;
   created_by?: User;
+  accepted_by?: User | null;
   created_at: string;
   updated_at: string;
+};
+
+export type SupplierDashboardResponse = {
+  summary: {
+    payments_count: number;
+    pending_acceptance: number;
+    accepted_payments: number;
+    total_amount: number;
+  };
+  recent_payments: SupplierPayment[] | CollectionResponse<SupplierPayment>;
 };
 
 export type AuditLog = {

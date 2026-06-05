@@ -18,8 +18,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'invoice_number',
     'received_by',
     'admin_note',
+    'supplier_note',
     'status',
     'created_by_user_id',
+    'accepted_by_user_id',
+    'accepted_at',
 ])]
 class SupplierPayment extends Model
 {
@@ -35,11 +38,17 @@ class SupplierPayment extends Model
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
+    public function acceptedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'accepted_by_user_id');
+    }
+
     protected function casts(): array
     {
         return [
             'payment_date' => 'date',
             'amount' => 'decimal:2',
+            'accepted_at' => 'datetime',
         ];
     }
 }

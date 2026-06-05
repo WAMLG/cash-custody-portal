@@ -7,6 +7,7 @@ use App\Http\Controllers\CashHandoverController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierPaymentController;
+use App\Http\Controllers\SupplierPortalController;
 use App\Http\Controllers\UserController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
@@ -73,5 +74,19 @@ Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
         Route::post('/cash-handovers', [CashHandoverController::class, 'financeStore']);
         Route::patch('/cash-handovers/{cashHandover}/note', [CashHandoverController::class, 'financeUpdateNote']);
         Route::get('/dashboard', [DashboardController::class, 'finance']);
+    });
+
+    Route::middleware('role:supplier')->prefix('supplier')->group(function (): void {
+        Route::get('/status', function (Request $request) {
+            return response()->json([
+                'message' => 'Supplier API access granted.',
+                'user' => new UserResource($request->user()),
+            ]);
+        });
+
+        Route::get('/dashboard', [SupplierPortalController::class, 'dashboard']);
+        Route::get('/payments', [SupplierPortalController::class, 'payments']);
+        Route::patch('/payments/{supplierPayment}/note', [SupplierPortalController::class, 'updateNote']);
+        Route::post('/payments/{supplierPayment}/accept', [SupplierPortalController::class, 'accept']);
     });
 });

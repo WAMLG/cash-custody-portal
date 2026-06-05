@@ -8,7 +8,7 @@ Build a secure cash ledger web portal called Cash Custody Portal with a clean se
 - backend/ as a Laravel API application
 - docs/ for documentation and setup notes
 
-The current phase is frontend foundation work after backend core APIs were prepared.
+The current phase is supplier portal expansion after the original admin and finance demo was completed.
 
 ## 2. What we completed so far
 
@@ -117,12 +117,62 @@ The current phase is frontend foundation work after backend core APIs were prepa
 - Updated local frontend state directly from API responses after create/edit/block/unblock/void actions where possible.
 - Added Render backend Docker deployment files.
 - Added docs/deployment.md with Render backend and Vercel frontend deployment steps.
+- Chose Cloudflare Quick Tunnel as the no-card/no-cost demo path because Render asked for bank card details.
+- Added docs/cloudflare-tunnel.md with local backend/frontend tunnel instructions.
+- Confirmed backend Cloudflare tunnel worked at https://define-ste-closely-portal.trycloudflare.com and /up returned Application up.
+- Fixed login button staying disabled during slow tunnel session refresh.
+- Added frontend API request timeout handling so stalled tunnel/API requests show a clear timeout error.
+- Removed external Google font dependency from the Next.js layout so frontend builds do not fail when network font fetches are blocked.
+- Diagnosed Cloudflare Tunnel login issue: local Laravel /up works, but the backend trycloudflare URL in frontend/.env.local was not reachable, which means the backend tunnel likely stopped or changed.
+- Updated docs/cloudflare-tunnel.md with login failure troubleshooting and the correct tunnel restart order.
+- Started supplier portal expansion.
+- Added supplier as a login role linked to an existing supplier record.
+- Added database fields for supplier users and supplier payment acceptance.
+- Added backend supplier portal APIs for supplier dashboard, own payments, note update, and payment acceptance.
+- Added frontend supplier dashboard and supplier payments pages.
+- Updated admin user management so admins can create and edit supplier login users linked to suppliers.
+- Simplified supplier onboarding so Admin > Users creates supplier companies and their one login user together.
+- Removed the separate Create Supplier form from the Admin Suppliers page; that page now manages existing supplier companies.
+- Added a unique database constraint so each supplier record can be linked to only one supplier user.
+- Improved mobile usability across the frontend.
+- Made the main app shell responsive with a sticky mobile header, horizontal mobile navigation, active navigation state, and mobile-friendly logout.
+- Converted shared admin tables into mobile card-style records automatically.
+- Converted finance and supplier dashboard/record tables into mobile card-style records.
+- Increased mobile tap target sizes for key login and record actions.
+- Fixed supplier role login redirect handling for role-specific next URLs.
+- Added a mobile bottom navigation bar for thumb-friendly page switching.
+- Improved mobile modal behavior so edit panels open as comfortable bottom sheets on phones.
+- Improved mobile form controls for finance handovers and admin supplier payments with larger inputs and full-width primary actions.
+- Improved mobile action button layout in table cards to reduce mis-taps.
+- Added clearer status badge treatment with a small state dot.
+- Replaced the sideways-scrolling mobile bottom navigation with a fixed icon grid so every mobile tab is visible without horizontal scrolling.
+- Reworked Admin Users into three in-page tabs: Create, Users, and Receivers.
+- Changed current users into touch-friendly record cards that open an edit/action modal.
+- Changed authorized receivers into touch-friendly record cards with edit/block/unblock modal actions.
+- Reworked Admin Cash Handovers into touch-friendly record cards with detail/action modals.
+- Reworked Admin Supplier Payments into touch-friendly record cards with detail/action modals.
+- Reworked Admin Suppliers into touch-friendly record cards with edit/block/unblock modals.
+- Reworked Admin Audit Logs into touch-friendly record cards with view-only detail modals.
+- Diagnosed mobile/laptop login failure as a stale or stopped backend Cloudflare tunnel URL in frontend/.env.local.
+- Improved login connection error messaging so a dead backend API/tunnel is shown clearly.
+- Switched phone/tunnel testing to a same-origin API setup: frontend calls /api and Next.js rewrites /api/* to local Laravel at http://127.0.0.1:8000/api/*.
+- Updated frontend/.env.local to NEXT_PUBLIC_API_BASE_URL=/api so only one Cloudflare tunnel is needed for frontend phone testing.
+- Fixed an auth race condition where an old failed /api/me session check could clear a fresh login token on slow tunnel/mobile sessions.
+- Improved mobile login reliability by storing auth tokens in localStorage with sessionStorage and memory fallbacks.
+- Changed successful login navigation to a full page navigation so mobile/tunnel browsers reliably load the authenticated route with the stored token.
+- Added /login/submit as a server-side fallback login route so mobile browsers can authenticate even when the React login handler does not hydrate and the form submits as plain HTML.
+- Added cookie token fallback so the server-side fallback login can still authenticate protected frontend pages after redirect.
+- Fixed mobile fallback login redirect so it uses a relative Location header instead of redirecting Cloudflare Tunnel users to localhost.
+- Re-verified single-tunnel mobile login setup: frontend lint, frontend production build, and backend tests pass.
+- Fixed mobile dashboard stuck on "Loading secure session..." by storing a non-secret user snapshot with the auth token and letting protected routes open immediately while /api/me refreshes in the background.
+- Hardened auth startup further: AuthProvider now initializes immediately from stored mobile session data and includes a five-second watchdog so "Loading secure session..." cannot remain indefinitely if /api/me stalls.
+- Current blocker: Laravel login cannot query Supabase because backend/.env has a Supabase pooler tenant/user that Supabase rejects with ENOTFOUND tenant/user not found. Mobile login cannot work until DB credentials are corrected and Laravel config is cleared/restarted.
 
 ## 3. Current step we are working on
 
-Deployment preparation.
+Mobile-friendly frontend redesign pass.
 
-Status: Render backend deployment files created locally and ready to commit/push.
+Status: supplier role and one-login-per-supplier onboarding are implemented. Mobile navigation now uses a compact icon grid with all tabs visible at once. Admin Users, Cash Handovers, Supplier Payments, Suppliers, and Audit Logs now use row/card lists with tap-to-open detail panels. Phone testing now uses a single frontend Cloudflare tunnel with Next.js proxying /api to local Laravel. Auth token handling has been hardened for slow mobile/tunnel sessions, mobile storage behavior, and non-hydrated mobile form submits. The next step is to restart Laravel and Next.js, clear old browser session data, then open a fresh frontend tunnel URL on mobile.
 
 ## 4. Important files changed recently
 
@@ -234,6 +284,31 @@ Status: Render backend deployment files created locally and ready to commit/push
 - backend/docker/apache.conf
 - backend/docker/render-start.sh
 - docs/deployment.md
+- docs/cloudflare-tunnel.md
+- frontend/src/lib/api.ts
+- frontend/src/app/login/LoginForm.tsx
+- frontend/src/app/layout.tsx
+- frontend/src/app/globals.css
+- backend/database/migrations/2026_05_14_120000_add_supplier_portal_fields.php
+- backend/app/Http/Controllers/SupplierPortalController.php
+- frontend/src/app/supplier/dashboard/page.tsx
+- frontend/src/app/supplier/dashboard/SupplierDashboardClient.tsx
+- frontend/src/app/supplier/payments/page.tsx
+- frontend/src/app/supplier/payments/SupplierPaymentsClient.tsx
+- backend/database/migrations/2026_05_15_090000_add_unique_supplier_user_constraint.php
+- frontend/src/components/AdminTable.tsx
+- frontend/src/components/AppShell.tsx
+- frontend/src/app/finance/dashboard/FinanceDashboardClient.tsx
+- frontend/src/app/finance/my-records/MyRecordsClient.tsx
+- frontend/src/app/supplier/dashboard/SupplierDashboardClient.tsx
+- frontend/src/app/login/page.tsx
+- frontend/src/app/login/LoginForm.tsx
+- frontend/src/components/Modal.tsx
+- frontend/src/app/finance/new-handover/NewHandoverClient.tsx
+- frontend/src/app/admin/cash-handovers/AdminCashHandoversClient.tsx
+- frontend/src/app/admin/supplier-payments/AdminSupplierPaymentsClient.tsx
+- frontend/src/app/supplier/payments/SupplierPaymentsClient.tsx
+- frontend/src/components/StatusBadge.tsx
 
 ## 5. Known bugs/issues still remaining
 
@@ -252,21 +327,26 @@ Status: Render backend deployment files created locally and ready to commit/push
 - Temporary protected status routes exist at /api/admin/status and /api/finance/status for checking role middleware.
 - Frontend token storage currently uses sessionStorage for the demo. A production browser security review should consider httpOnly cookies or a BFF pattern later.
 - Local demo responsiveness can still be affected by Supabase network latency and Next.js dev-mode overhead. Production builds and closer backend/database hosting should feel faster.
+- Existing Supabase databases need the new supplier portal migration before supplier login can work.
+- Existing Supabase databases seeded before supplier login was added need supplier login users created from Admin > Users.
+- If duplicate supplier users were manually linked to the same supplier before this change, the unique supplier-user migration will fail until duplicates are cleaned up.
 
 ## 6. Next exact steps to continue
 
-Next step is commit and push the Render backend deployment files, then create/deploy the Render Web Service.
+Next step is migrate the database and test the new supplier login flow.
 
 Exact next actions:
 
-1. Commit and push backend/Dockerfile, backend/.dockerignore, backend/docker/, docs/deployment.md, and project_state.md.
-2. In Render, create a Web Service from WAMLG/cash-custody-portal.
-3. Use root directory backend and runtime Docker.
-4. Set Render environment variables, including the real APP_KEY and Supabase PostgreSQL credentials.
-5. Deploy the backend.
-6. After first successful deploy, run migrations only if needed. Avoid running db:seed again if the Supabase database already has demo records.
-7. Test https://YOUR_RENDER_SERVICE.onrender.com/api/login.
-8. After backend works, deploy frontend to Vercel with NEXT_PUBLIC_API_BASE_URL pointing to the Render API URL.
+1. Run cd D:\FINE\cash-custody-portal\backend.
+2. Run php artisan migrate.
+3. Start or restart Laravel: php artisan serve --host=127.0.0.1 --port=8000.
+4. Start or restart Next.js from frontend/: npm run dev -- --hostname 127.0.0.1 --port 3000.
+5. Login as admin.
+6. Go to Admin > Users.
+7. Create a user with role Supplier and fill the supplier/company fields in the same form.
+8. Login with that supplier user and confirm it redirects to /supplier/dashboard.
+9. Open Supplier > Payments, edit the supplier note, and accept a paid payment.
+10. Test the same admin, finance, and supplier workflows in a mobile browser width or on a phone.
 
 ## 7. Any rules or decisions we must not forget
 
@@ -277,8 +357,8 @@ Exact next actions:
 5. Admin can confirm cash handovers.
 6. Admin can edit records, but edits must be audited.
 7. Admin can delete only by soft delete or void status.
-8. Suppliers are not login users yet.
-9. Admin can manage suppliers and supplier payments.
+8. Suppliers can have login users linked to supplier records.
+9. Admin creates supplier companies and their login users together from Admin Users.
 10. Family members are not users.
 11. Family members and authorized receivers are selected from a dropdown.
 12. Backend must enforce all permissions.
@@ -294,3 +374,7 @@ Exact next actions:
 22. Do not commit .env files.
 23. Keep storage replaceable so Supabase Storage can later move to Cloudflare R2 or AWS S3.
 24. Frontend may display totals, but backend must calculate official ledger totals and balances.
+25. Supplier users can only see payments for their linked supplier.
+26. Supplier users can accept payments and edit only supplier_note.
+27. One supplier record can have only one supplier login user.
+28. Admin Suppliers is for managing existing suppliers; new supplier creation is handled through Admin Users with role Supplier.

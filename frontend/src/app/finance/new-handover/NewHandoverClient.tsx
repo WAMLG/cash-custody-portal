@@ -128,14 +128,14 @@ export function NewHandoverClient() {
 
   return (
     <form
-      className="rounded-md border border-[#d8dde5] bg-white p-5 shadow-sm"
+      className="rounded-md border border-[#d8dde5] bg-white p-4 shadow-sm sm:p-5"
       onSubmit={handleSubmit}
     >
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block">
           <span className="text-sm font-medium text-[#384150]">Amount</span>
           <input
-            className="mt-2 h-11 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c]"
+            className="mt-2 h-12 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c] sm:h-11"
             type="number"
             min="0.01"
             step="0.01"
@@ -147,7 +147,7 @@ export function NewHandoverClient() {
         <label className="block">
           <span className="text-sm font-medium text-[#384150]">Handed by</span>
           <input
-            className="mt-2 h-11 w-full rounded-md border border-[#d8dde5] bg-[#f6f7f9] px-3 text-[#687080]"
+            className="mt-2 h-12 w-full rounded-md border border-[#d8dde5] bg-[#f6f7f9] px-3 text-[#687080] sm:h-11"
             type="text"
             value={user?.name ?? ""}
             readOnly
@@ -156,7 +156,7 @@ export function NewHandoverClient() {
         <label className="block">
           <span className="text-sm font-medium text-[#384150]">Date</span>
           <input
-            className="mt-2 h-11 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c]"
+            className="mt-2 h-12 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c] sm:h-11"
             type="date"
             value={handoverDate}
             onChange={(event) => setHandoverDate(event.target.value)}
@@ -166,7 +166,7 @@ export function NewHandoverClient() {
         <label className="block">
           <span className="text-sm font-medium text-[#384150]">Time</span>
           <input
-            className="mt-2 h-11 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c]"
+            className="mt-2 h-12 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c] sm:h-11"
             type="time"
             value={handoverTime}
             onChange={(event) => setHandoverTime(event.target.value)}
@@ -178,7 +178,7 @@ export function NewHandoverClient() {
             Handed to whom
           </span>
           <select
-            className="mt-2 h-11 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c]"
+            className="mt-2 h-12 w-full rounded-md border border-[#cfd6df] px-3 outline-none focus:border-[#1f7a5c] sm:h-11"
             value={receiverId}
             onChange={(event) => setReceiverId(event.target.value)}
             required
@@ -215,7 +215,7 @@ export function NewHandoverClient() {
 
       <div className="mt-5 flex justify-end">
         <button
-          className="h-11 rounded-md bg-[#1f7a5c] px-5 text-sm font-semibold text-white hover:bg-[#19664d] disabled:cursor-not-allowed disabled:bg-[#8bb7a7]"
+          className="h-12 w-full rounded-md bg-[#1f7a5c] px-5 text-sm font-semibold text-white hover:bg-[#19664d] disabled:cursor-not-allowed disabled:bg-[#8bb7a7] sm:h-11 sm:w-auto"
           type="submit"
           disabled={isSubmitting || receivers.length === 0}
         >

@@ -78,8 +78,8 @@ export function FinanceDashboardClient() {
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="grid gap-3 md:grid-cols-4">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Submitted"
           value={dashboard.summary.submitted_handovers_count}
@@ -95,7 +95,7 @@ export function FinanceDashboardClient() {
         />
       </section>
 
-      <section className="rounded-md border border-[#d8dde5] bg-white shadow-sm">
+      <section className="mobile-table rounded-md border border-[#d8dde5] bg-white shadow-sm">
         <div className="border-b border-[#e3e7ee] px-5 py-4">
           <h3 className="text-base font-semibold text-[#15181d]">
             Recent Handover Records
@@ -106,8 +106,8 @@ export function FinanceDashboardClient() {
             No handovers submitted yet.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+          <div className="overflow-x-auto md:overflow-visible">
+            <table className="w-full min-w-[760px] text-left text-sm md:min-w-0">
               <thead className="bg-[#fafbfc] text-[#687080]">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Code</th>
@@ -121,22 +121,22 @@ export function FinanceDashboardClient() {
               <tbody className="divide-y divide-[#e3e7ee]">
                 {recentHandovers.map((handover) => (
                   <tr key={handover.id}>
-                    <td className="px-5 py-3 font-medium text-[#15181d]">
+                    <td data-label="Code" className="px-5 py-3 font-medium text-[#15181d]">
                       {handover.handover_code}
                     </td>
-                    <td className="px-5 py-3 text-[#384150]">
+                    <td data-label="Date" className="px-5 py-3 text-[#384150]">
                       {formatDate(handover.handover_date)}
                     </td>
-                    <td className="px-5 py-3 text-[#384150]">
+                    <td data-label="Time" className="px-5 py-3 text-[#384150]">
                       {formatTime(handover.handover_time)}
                     </td>
-                    <td className="px-5 py-3 text-[#384150]">
+                    <td data-label="Amount" className="px-5 py-3 text-[#384150]">
                       {formatMoney(handover.amount)}
                     </td>
-                    <td className="px-5 py-3 text-[#384150]">
+                    <td data-label="Receiver" className="px-5 py-3 text-[#384150]">
                       {handover.handed_to?.name ?? "-"}
                     </td>
-                    <td className="px-5 py-3">
+                    <td data-label="Status" className="px-5 py-3">
                       <StatusBadge status={handover.status} />
                     </td>
                   </tr>
@@ -154,7 +154,7 @@ function KpiCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-md border border-[#d8dde5] bg-white p-4 shadow-sm">
       <p className="text-sm font-medium text-[#687080]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-[#15181d]">{value}</p>
+      <p className="mt-2 text-xl font-semibold text-[#15181d] sm:text-2xl">{value}</p>
     </div>
   );
 }

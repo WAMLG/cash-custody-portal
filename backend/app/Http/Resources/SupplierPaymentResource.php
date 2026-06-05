@@ -22,9 +22,12 @@ class SupplierPaymentResource extends JsonResource
             'invoice_number' => $this->invoice_number,
             'received_by' => $this->received_by,
             'admin_note' => $this->admin_note,
+            'supplier_note' => $this->supplier_note,
             'status' => $this->status,
+            'accepted_at' => $this->accepted_at,
             'supplier' => new SupplierResource($this->whenLoaded('supplier')),
             'created_by' => new UserResource($this->whenLoaded('createdBy')),
+            'accepted_by' => new UserResource($this->whenLoaded('acceptedBy')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

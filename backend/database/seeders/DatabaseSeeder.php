@@ -90,6 +90,17 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
         ]);
 
+        User::create([
+            'name' => 'Lanka Office Supplier',
+            'email' => 'supplier1@example.com',
+            'username' => 'supplier1',
+            'password' => Hash::make('Password@123'),
+            'role' => 'supplier',
+            'supplier_id' => $supplierOne->id,
+            'status' => 'active',
+            'phone' => '+94770000004',
+        ]);
+
         $today = Carbon::today('Asia/Colombo');
 
         $handoverOne = CashHandover::create([

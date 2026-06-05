@@ -69,11 +69,33 @@ Finance users cannot:
 - Manage users
 - Access admin routes
 
-### Suppliers
+### Supplier User
 
-Suppliers are not login users for now.
+Supplier users are login users linked to supplier records created by the admin.
 
-Supplier management must be available from the admin side, but no supplier login portal is needed in the current scope.
+The portal uses a one-to-one supplier login rule:
+
+- One supplier company/vendor record has one supplier login user.
+- Admin creates the supplier company and login together from the Admin Users page by selecting the Supplier role.
+- The Admin Suppliers page is for viewing, editing, blocking, and unblocking existing supplier companies, not for creating supplier login accounts separately.
+
+Supplier users can:
+
+- Login using username/email and password
+- View only their own supplier payment records
+- See payment status and admin notes on their own payment records
+- Accept their own payments
+- Edit only their own supplier note
+
+Supplier users cannot:
+
+- Create supplier payments
+- Edit payment amount, date, supplier, purpose, invoice number, or admin note
+- View other suppliers' payments
+- View finance handovers
+- View the full cash balance
+- Manage users, suppliers, or authorized receivers
+- Access admin routes
 
 ### Authorized Receivers / Family Members
 
@@ -137,8 +159,6 @@ If an admin edits a confirmed record, the system must log both old values and ne
 
 ### Supplier Payment Workflow
 
-Supplier login is not needed now.
-
 Admin creates and manages supplier records, then creates supplier payment records.
 
 Supplier payment form should contain:
@@ -157,6 +177,9 @@ After a supplier payment is created:
 
 - It reduces the ledger cash balance
 - It appears in dashboard analytics
+- The linked supplier user can see it in the supplier portal
+- The linked supplier user can accept the payment
+- The linked supplier user can edit only the supplier note
 - Admin can edit it
 - Admin can void or soft-delete it
 - Every important change must be logged
@@ -164,6 +187,7 @@ After a supplier payment is created:
 Supplier payment statuses:
 
 - paid
+- accepted
 - voided
 
 ## Financial Rules
@@ -334,6 +358,7 @@ Backend requirements:
 - username
 - password
 - role
+- supplier_id nullable, one supplier user per supplier record
 - status
 - phone optional
 - last_login_at optional
@@ -345,6 +370,7 @@ Roles:
 
 - admin
 - finance
+- supplier
 
 Statuses:
 
@@ -410,8 +436,11 @@ Statuses:
 - invoice_number optional
 - received_by optional
 - admin_note optional
+- supplier_note optional
 - status
 - created_by_user_id
+- accepted_by_user_id optional
+- accepted_at optional
 - created_at
 - updated_at
 - deleted_at
@@ -419,6 +448,7 @@ Statuses:
 Statuses:
 
 - paid
+- accepted
 - voided
 
 ### audit_logs
@@ -500,6 +530,13 @@ Audit logs must record:
 - PATCH /api/admin/supplier-payments/{id}
 - POST /api/admin/supplier-payments/{id}/void
 
+### Supplier Portal
+
+- GET /api/supplier/dashboard
+- GET /api/supplier/payments
+- PATCH /api/supplier/payments/{id}/note
+- POST /api/supplier/payments/{id}/accept
+
 ### Dashboard
 
 - GET /api/admin/dashboard?period=today
@@ -551,6 +588,16 @@ Finance dashboard must show:
 - My total submitted amount for current month
 - Recent handover records
 
+### Supplier Dashboard
+
+Supplier dashboard must show:
+
+- My supplier payments count
+- Payments pending acceptance
+- Accepted payments
+- Total amount for own paid and accepted payments
+- Recent supplier payment records
+
 ## Security Rules
 
 - Do not store passwords in plain text.
@@ -562,6 +609,8 @@ Finance dashboard must show:
 - Frontend permission hiding alone is not enough.
 - Blocked users cannot login.
 - Finance users cannot access admin routes.
+- Supplier users cannot access admin or finance routes.
+- Supplier users can access only payments linked to their assigned supplier record.
 - Admin-only actions must be protected on backend.
 - Do not expose database credentials in frontend.
 - Use .env files.
@@ -579,8 +628,8 @@ Finance dashboard must show:
 5. Admin can confirm handovers.
 6. Admin can edit records, but edits must be audited.
 7. Admin can delete only by soft delete or void.
-8. Suppliers are not login users yet.
-9. Admin can manage suppliers and supplier payments.
+8. Suppliers can have login users linked to supplier records.
+9. Admin creates supplier companies and their login users together from Admin Users.
 10. Family members are not users.
 11. Family members and authorized receivers are selected from a dropdown.
 12. Backend must enforce all permissions.
